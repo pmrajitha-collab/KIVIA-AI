@@ -1,0 +1,8 @@
+{
+  "name": "KIVIA - Collaborative Peer Study",
+  "description": "An integrated study platform combining real-time chat, video learning, and AI-powered smart notebooks grounded in group discussions.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
