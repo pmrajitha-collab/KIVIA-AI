@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { User, Group, Message, AppTab, SmartNote, Flashcard, VideoSession, ScheduledSession, StudyRoutine, Post, Alarm, PlannerTask } from './types';
 import Sidebar from './components/Sidebar';
 import ChatView from './components/ChatView';
@@ -37,6 +37,7 @@ const App: React.FC = () => {
   const [plannerTasks, setPlannerTasks] = useState<PlannerTask[]>([]);
   const [isSARAOpen, setIsSARAOpen] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const deferredPrompt = useRef<any>(null);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [isCalling, setIsCalling] = useState(false);
@@ -66,8 +67,28 @@ const App: React.FC = () => {
     
     handleHashRouting();
     window.addEventListener('hashchange', handleHashRouting);
-    return () => window.removeEventListener('hashchange', handleHashRouting);
+
+    const handleBeforeInstallPrompt = (e: any) => {
+      e.preventDefault();
+      deferredPrompt.current = e;
+    };
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+
+    return () => {
+      window.removeEventListener('hashchange', handleHashRouting);
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    };
   }, []);
+
+  // Trigger PWA install for specific user
+  useEffect(() => {
+    if (currentUser?.name === 'kotoamatsukamiguy' && deferredPrompt.current) {
+      deferredPrompt.current.prompt();
+      deferredPrompt.current.userChoice.then(() => {
+        deferredPrompt.current = null;
+      });
+    }
+  }, [currentUser]);
 
   // Sync with LocalStorage
   useEffect(() => {
@@ -104,17 +125,23 @@ const App: React.FC = () => {
     if (!cleanCode) return;
     const existing = groups.find(g => g.joinCode === cleanCode);
     if (existing) {
+      if (!existing.memberIds.includes(currentUser!.id)) {
+        setGroups(prev => prev.map(g => g.id === existing.id ? { ...g, memberIds: [...g.memberIds, currentUser!.id] } : g));
+      }
       setActiveGroupId(existing.id);
       setActiveTab(AppTab.CHAT);
       setIsGroupModalOpen(null);
       setGroupInput('');
       return;
     }
+    // Note: In a real app we'd fetch the group from a DB. Locally we create it if it doesn't exist.
     const newGroup: Group = {
       id: Date.now().toString(),
       name: `Peer Session #${cleanCode.slice(-4)}`,
       joinCode: cleanCode,
       memberIds: [currentUser?.id || 'anon'],
+      adminIds: [currentUser?.id || 'anon'],
+      avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${cleanCode}`,
       createdAt: new Date().toISOString(),
       lastMessage: 'You joined via a peer link'
     };
@@ -134,6 +161,8 @@ const App: React.FC = () => {
       name: groupInput,
       joinCode,
       memberIds: [currentUser!.id],
+      adminIds: [currentUser!.id],
+      avatar: `https://api.dicebear.com/7.x/identicon/svg?seed=${joinCode}`,
       createdAt: new Date().toISOString(),
       lastMessage: 'Group created'
     };
@@ -170,7 +199,12 @@ const App: React.FC = () => {
   };
 
   const handleExitGroup = (groupId: string) => {
-    setGroups(groups.filter(g => g.id !== groupId));
+    setGroups(prev => prev.map(g => g.id === groupId ? { 
+      ...g, 
+      memberIds: g.memberIds.filter(id => id !== currentUser!.id),
+      adminIds: g.adminIds.filter(id => id !== currentUser!.id)
+    } : g).filter(g => g.memberIds.length > 0));
+    
     if (activeGroupId === groupId) {
       setActiveGroupId(null);
       setActiveTab(AppTab.HOME);
@@ -189,14 +223,13 @@ const App: React.FC = () => {
       text,
       timestamp: new Date().toISOString(),
       type,
-      status: 'sent', // Initially sent
+      status: 'sent',
       metadata: { ...metadata, groupId: gid }
     };
     
     setMessages(prev => [...prev, newMessage]);
     setGroups(prev => prev.map(g => g.id === gid ? { ...g, lastMessage: type === 'text' ? text : `[${type}]` } : g));
 
-    // Simulate "Read" status after a brief delay for local visual feedback
     setTimeout(() => {
       setMessages(prev => prev.map(m => m.id === messageId ? { ...m, status: 'read' as const } : m));
     }, 1500);
@@ -212,6 +245,15 @@ const App: React.FC = () => {
     }
     handleSendMessage(shareText, 'text', { groupId, preview });
     alert(`Post shared to ${group.name}!`);
+  };
+
+  const handleShareVideoToGroup = (video: VideoSession, groupId: string) => {
+    const group = groups.find(g => g.id === groupId);
+    if (!group) return;
+    const shareText = `Study Session: ${video.title}\nSummary: ${video.summary}`;
+    const preview = { type: 'video' as const, url: video.url, title: video.title };
+    handleSendMessage(shareText, 'text', { groupId, preview });
+    alert(`Video session shared to ${group.name}!`);
   };
 
   const handleAddPost = (content: string, type: 'text' | 'image' | 'video', mediaUrl?: string) => {
@@ -323,12 +365,12 @@ const App: React.FC = () => {
                  activeTab === AppTab.VIDEO ? 'Video Hub' : 
                  activeTab === AppTab.NOTEBOOK ? 'Notebook' : 
                  activeTab === AppTab.FLASHCARDS ? 'Flashcards' :
-                 activeTab === AppTab.FLASHCARD_GEN ? 'Forge Deck' :
-                 activeTab === AppTab.AI_CHAT ? 'Deep Reason' :
-                 activeTab === AppTab.SCHEDULE ? 'Session Plan' : 
-                 activeTab === AppTab.PLANNER ? 'Planner & Alarms' : 
-                 activeTab === AppTab.GROUP_SETTINGS ? 'Squad Settings' :
-                 activeTab === AppTab.GROUPS_HUB ? 'Squads' : 'Profile'}
+                 activeTab === AppTab.FLASHCARD_GEN ? 'Flashcard Generator' :
+                 activeTab === AppTab.AI_CHAT ? 'SARA' :
+                 activeTab === AppTab.SCHEDULE ? 'Schedule' : 
+                 activeTab === AppTab.PLANNER ? 'Planner' : 
+                 activeTab === AppTab.GROUP_SETTINGS ? 'Group Settings' :
+                 activeTab === AppTab.GROUPS_HUB ? 'Groups' : 'Profile'}
               </h1>
               <div className="flex items-center gap-2">
                 {activeTab === AppTab.GROUP_SETTINGS ? (
@@ -369,7 +411,7 @@ const App: React.FC = () => {
           </div>
         </header>
 
-        <div className={`flex-1 overflow-hidden relative ${activeGroupId ? 'study-grid' : ''}`}>
+        <div className={`flex-1 overflow-hidden relative ${activeGroupId ? 'bg-slate-50/50' : ''}`}>
           {searchQuery ? (
             <SearchView query={searchQuery} users={allUsers} messages={messages} notes={notes} videos={videos} groups={groups} onNavigate={(gid, tab) => { setActiveGroupId(gid); setActiveTab(tab); setSearchQuery(''); }} onClose={() => setSearchQuery('')} />
           ) : activeTab === AppTab.HOME ? (
@@ -383,21 +425,21 @@ const App: React.FC = () => {
           ) : activeTab === AppTab.PLANNER ? (
             <PlannerView alarms={alarms} tasks={plannerTasks} onAddAlarm={(a) => setAlarms([...alarms, { ...a, id: Date.now().toString() }])} onToggleAlarm={(id) => setAlarms(alarms.map(a => a.id === id ? { ...a, isEnabled: !a.isEnabled } : a))} onDeleteAlarm={(id) => setAlarms(alarms.filter(a => a.id !== id))} onAddTask={(t) => setPlannerTasks([...plannerTasks, { ...t, id: Date.now().toString() }])} onUpdateTasks={(t) => setPlannerTasks(t)} onDeleteTask={(id) => setPlannerTasks(plannerTasks.filter(t => t.id !== id))} onBack={handleBack} />
           ) : activeTab === AppTab.GROUP_SETTINGS && activeGroup ? (
-            <GroupDetailSettings group={activeGroup} messages={messages.filter(m => m.metadata?.groupId === activeGroup.id)} onUpdateGroup={(updated) => handleUpdateGroup(activeGroup.id, updated)} onClearChat={() => handleClearChat(activeGroup.id)} onExitGroup={() => handleExitGroup(activeGroup.id)} onDeleteGroup={() => handleDeleteGroup(activeGroup.id)} onBack={() => setActiveTab(AppTab.CHAT)} />
+            <GroupDetailSettings group={activeGroup} messages={messages.filter(m => m.metadata?.groupId === activeGroup.id)} allUsers={allUsers} currentUser={currentUser} onUpdateGroup={(updated) => handleUpdateGroup(activeGroup.id, updated)} onClearChat={() => handleClearChat(activeGroup.id)} onExitGroup={() => handleExitGroup(activeGroup.id)} onDeleteGroup={() => handleDeleteGroup(activeGroup.id)} onBack={() => setActiveTab(AppTab.CHAT)} />
           ) : !activeGroupId ? (
-            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-[#F9FBEC]/10 animate-in zoom-in-95 duration-1000">
-              <Logo className="w-32 h-32 mb-10 shadow-[0_40px_80px_-15px_rgba(162,209,73,0.3)] rounded-full bg-white p-4" />
-              <h2 className="text-4xl font-black text-gray-900 mb-4 tracking-tight leading-tight">Your Academic Hub,<br/>Amplified by AI.</h2>
-              <p className="text-gray-500 max-w-md font-medium text-lg mb-12">Connect with peers, organize your schedule, and let SARA synthesize your learning journey.</p>
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center bg-slate-50/30 animate-in fade-in duration-700">
+              <Logo className="w-24 h-24 mb-8 text-slate-900" />
+              <h2 className="text-3xl font-bold text-slate-900 mb-4 tracking-tight">Collaborative Learning Platform</h2>
+              <p className="text-slate-500 max-w-md font-normal text-base mb-10">Connect with peers, manage your schedule, and leverage AI to enhance your study workflow.</p>
               <div className="flex flex-wrap justify-center gap-4">
-                <button onClick={() => setIsGroupModalOpen('create')} className="bg-indigo-600 text-white px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest shadow-2xl shadow-indigo-100 hover:bg-indigo-700 hover:scale-105 transition-all">Create Study Group</button>
-                <button onClick={() => setSettingsModal({ isOpen: true, tab: SettingsTab.JOIN })} className="bg-white border-2 border-gray-100 text-gray-600 px-10 py-5 rounded-[2rem] font-black text-xs uppercase tracking-widest hover:border-indigo-100 hover:text-indigo-600 transition-all">Join Session</button>
+                <button onClick={() => setIsGroupModalOpen('create')} className="bg-slate-900 text-white px-8 py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-800 transition-all shadow-sm">Create Study Group</button>
+                <button onClick={() => setSettingsModal({ isOpen: true, tab: SettingsTab.JOIN })} className="bg-white border border-slate-200 text-slate-600 px-8 py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-50 transition-all shadow-sm">Join Session</button>
               </div>
             </div>
           ) : (
             <div className="h-full">
               {activeTab === AppTab.CHAT && <ChatView currentUser={currentUser} messages={filteredMessages} onSendMessage={handleSendMessage} allUsers={allUsers} activeGroup={activeGroup} />}
-              {activeTab === AppTab.VIDEO && <VideoView videos={videos.filter(v => v.groupId === activeGroupId)} onAddVideo={(t, u) => setVideos([...videos, { id: Date.now().toString(), groupId: activeGroupId, title: t, url: u, thumbnail: `https://picsum.photos/seed/${Date.now()}/400/225`, duration: '0:00', recordedAt: new Date().toISOString() }])} onBack={handleBack} />}
+              {activeTab === AppTab.VIDEO && <VideoView videos={videos.filter(v => v.groupId === activeGroupId)} groups={groups} onShareVideoToGroup={handleShareVideoToGroup} onAddVideo={(t, u, s, d, th) => setVideos([...videos, { id: Date.now().toString(), groupId: activeGroupId, title: t, url: u, summary: s, duration: d, thumbnail: th, sharedByName: currentUser.name, recordedAt: new Date().toISOString() }])} onBack={handleBack} />}
               {activeTab === AppTab.NOTEBOOK && <NotebookView notes={notes.filter(n => n.groupId === activeGroupId)} onBack={handleBack} />}
               {activeTab === AppTab.FLASHCARDS && <FlashcardsView flashcards={activeGroupFlashcards} onGenerate={() => setActiveTab(AppTab.FLASHCARD_GEN)} isGenerating={isGeneratingFlashcards} onBack={handleBack} />}
               {activeTab === AppTab.FLASHCARD_GEN && <FlashcardGeneratorView groupId={activeGroupId || ''} onBack={() => setActiveTab(AppTab.FLASHCARDS)} onCardsGenerated={(newCards) => setFlashcards(prev => [...prev, ...newCards])} />}
@@ -413,7 +455,18 @@ const App: React.FC = () => {
       </main>
 
       {settingsModal.isOpen && (
-        <SettingsModal user={currentUser} activeGroup={activeGroup} initialTab={settingsModal.tab} onClose={() => setSettingsModal({ ...settingsModal, isOpen: false })} onUpdateUser={handleUpdateUser} onUpdateGroup={(updated) => activeGroup && handleUpdateGroup(activeGroup.id, updated)} onDeleteGroup={() => activeGroup && handleDeleteGroup(activeGroup.id)} onJoinGroup={handleJoinByCode} />
+        <SettingsModal 
+          user={currentUser} 
+          activeGroup={activeGroup} 
+          initialTab={settingsModal.tab} 
+          onClose={() => setSettingsModal({ ...settingsModal, isOpen: false })} 
+          onUpdateUser={handleUpdateUser} 
+          onUpdateGroup={(updated) => activeGroup && handleUpdateGroup(activeGroup.id, updated)} 
+          onDeleteGroup={() => activeGroup && handleDeleteGroup(activeGroup.id)} 
+          onClearChat={() => activeGroup && handleClearChat(activeGroup.id)}
+          onExitGroup={() => activeGroup && handleExitGroup(activeGroup.id)}
+          onJoinGroup={handleJoinByCode} 
+        />
       )}
 
       {isGroupModalOpen === 'create' && (

@@ -31,19 +31,19 @@ const Sidebar: React.FC<SidebarProps> = ({
   onClose
 }) => {
   const navItems = [
-    { id: AppTab.PLANNER, label: 'Study Planner', icon: <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
-    { id: AppTab.AI_CHAT, label: 'Deep Reasoning', icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
-    { id: AppTab.GROUPS_HUB, label: 'Groups Hub', icon: <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
-    { id: AppTab.PROFILE_HUB, label: 'My Profile', icon: <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /> },
+    { id: AppTab.PLANNER, label: 'Planner', icon: <path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /> },
+    { id: AppTab.AI_CHAT, label: 'SARA', icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
+    { id: AppTab.GROUPS_HUB, label: 'Groups', icon: <path d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /> },
+    { id: AppTab.PROFILE_HUB, label: 'Profile', icon: <path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /> },
   ];
 
   const groupSpecificItems = [
-    { id: AppTab.CHAT, label: 'Group Chat', icon: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /> },
-    { id: AppTab.VIDEO, label: 'Video Hub', icon: <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /> },
+    { id: AppTab.CHAT, label: 'Chat', icon: <path d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" /> },
+    { id: AppTab.VIDEO, label: 'Videos', icon: <path d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" /> },
     { id: AppTab.NOTEBOOK, label: 'Notebook', icon: <path d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /> },
-    { id: AppTab.FLASHCARDS, label: 'Study Cards', icon: <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /> },
-    { id: AppTab.FLASHCARD_GEN, label: 'Flashcards Generator', icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
-    { id: AppTab.SCHEDULE, label: 'Session Plan', icon: <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
+    { id: AppTab.FLASHCARDS, label: 'Flashcards', icon: <path d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /> },
+    { id: AppTab.FLASHCARD_GEN, label: 'Generator', icon: <path d="M13 10V3L4 14h7v7l9-11h-7z" /> },
+    { id: AppTab.SCHEDULE, label: 'Schedule', icon: <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /> },
   ];
 
   return (

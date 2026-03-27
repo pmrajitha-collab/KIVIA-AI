@@ -1,4 +1,3 @@
-
 export type UserStatus = 'online' | 'busy' | 'studying' | 'offline';
 
 export interface User {
@@ -82,8 +81,10 @@ export interface StudyRoutine {
 export interface Group {
   id: string;
   name: string;
+  avatar?: string;
   joinCode: string;
   memberIds: string[];
+  adminIds: string[];
   lastMessage?: string;
   createdAt: string;
   activeCallId?: string | null;
@@ -122,6 +123,8 @@ export interface VideoSession {
   duration: string;
   recordedAt: string;
   url: string;
+  sharedByName: string;
+  summary: string;
   transcript?: string;
 }
 

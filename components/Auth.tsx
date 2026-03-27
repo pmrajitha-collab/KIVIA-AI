@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { User } from '../types';
 import Logo from './Logo';
@@ -26,11 +25,11 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
       if (user) {
         onLogin(user);
       } else {
-        alert('Invalid credentials. Hint: If you haven\'t created an account, click "Sign up" below.');
+        alert('Credentials not found. Try signing up.');
       }
     } else {
       if (users.find(u => u.name === username)) {
-        alert('Username already exists. Please choose another.');
+        alert('Identity already claimed. Choose another username.');
         return;
       }
       const newUser: User = {
@@ -39,160 +38,98 @@ const Auth: React.FC<AuthProps> = ({ onLogin }) => {
         password: password,
         avatar: avatar,
         status: 'online',
-        currentFocus: 'Getting Started',
         academicLevel,
         classLevel,
         division
       };
-      const updatedUsers = [...users, newUser];
-      localStorage.setItem('kivia_users', JSON.stringify(updatedUsers));
+      localStorage.setItem('kivia_users', JSON.stringify([...users, newUser]));
       onLogin(newUser);
     }
   };
 
-  const randomizeAvatar = () => {
-    setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`);
-  };
-
-  const handleCustomAvatar = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setAvatar(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#F9FBEC] via-white to-[#E6EFCA] p-4 overflow-y-auto">
-      <div className="bg-white p-10 rounded-[2.5rem] shadow-2xl w-full max-w-md border border-gray-100 my-8">
-        <div className="text-center mb-10">
-          <div className="flex justify-center mb-4">
-            <Logo className="w-16 h-16 shadow-xl rounded-full" />
-          </div>
-          <h1 className="text-4xl font-black text-gray-900 tracking-tight">KIVIA</h1>
-          <p className="text-gray-500 text-sm mt-2 font-medium">Elevate your peer study experience.</p>
+    <div className="min-h-screen w-full overflow-y-auto bg-slate-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-sm bg-white rounded-xl border border-slate-200 shadow-sm p-8 md:p-10 flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
+        <div className="flex flex-col items-center mb-10">
+          <Logo className="w-12 h-12 mb-4 text-slate-900" />
+          <h1 className="text-2xl font-bold text-slate-900 tracking-tight">KIVIA</h1>
+          <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-widest">Collaborative Learning</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
+        <form onSubmit={handleSubmit} className="w-full space-y-5">
           {!isLogin && (
-            <div className="flex flex-col items-center gap-4 mb-6">
-              <div className="relative group">
-                <img src={avatar} alt="Avatar" className="w-24 h-24 rounded-full border-4 border-indigo-50 bg-gray-50 shadow-inner group-hover:scale-105 transition-transform duration-300 object-cover" />
-                <div className="absolute -bottom-2 right-0 flex gap-1">
-                  <button 
-                    type="button" 
-                    onClick={randomizeAvatar}
-                    className="bg-indigo-600 text-white p-2 rounded-full shadow-lg hover:bg-indigo-700 transition-colors"
-                    title="Randomize Avatar"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
-                  </button>
-                  <button 
-                    type="button" 
-                    onClick={() => fileInputRef.current?.click()}
-                    className="bg-green-600 text-white p-2 rounded-full shadow-lg hover:bg-green-700 transition-colors"
-                    title="Upload Custom Pic"
-                  >
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M12 4v16m8-8H4" /></svg>
-                  </button>
-                </div>
-                <input 
-                  type="file" 
-                  ref={fileInputRef} 
-                  className="hidden" 
-                  accept="image/*" 
-                  onChange={handleCustomAvatar} 
-                />
+            <div className="flex flex-col items-center mb-6">
+              <div className="relative">
+                <img src={avatar} className="w-20 h-20 rounded-full border border-slate-200 bg-slate-50 shadow-inner object-cover" />
+                <button 
+                  type="button" 
+                  onClick={() => setAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${Math.random()}`)}
+                  className="absolute -bottom-1 -right-1 bg-white border border-slate-200 p-1.5 rounded-lg shadow-sm text-slate-500 hover:text-slate-900 transition-colors"
+                >
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" strokeWidth={3} /></svg>
+                </button>
               </div>
-              <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Profile Identity</span>
+              <span className="text-[8px] font-semibold text-slate-400 uppercase tracking-widest mt-2">Choose Avatar</span>
             </div>
           )}
 
           <div className="space-y-4">
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Username</label>
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Username</label>
               <input 
                 type="text" 
                 required
                 value={username}
                 onChange={e => setUsername(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
-                placeholder="e.g. quantum_learner"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:bg-white focus:border-slate-400 outline-none transition-all font-medium"
+                placeholder="Enter username"
               />
             </div>
-
             <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Password</label>
+              <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Password</label>
               <input 
                 type="password" 
                 required
                 value={password}
                 onChange={e => setPassword(e.target.value)}
-                className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
+                className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:bg-white focus:border-slate-400 outline-none transition-all font-medium"
                 placeholder="••••••••"
               />
             </div>
 
             {!isLogin && (
-              <>
+              <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Academic Level</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-widest mb-1.5 ml-1">Study Level</label>
                   <select 
                     value={academicLevel}
                     onChange={e => setAcademicLevel(e.target.value)}
-                    className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-lg px-4 py-3 text-sm focus:bg-white outline-none transition-all font-medium"
                   >
                     <option value="">Select Level</option>
-                    <option value="High School">High School</option>
                     <option value="Undergraduate">Undergraduate</option>
+                    <option value="High School">High School</option>
                     <option value="Postgraduate">Postgraduate</option>
-                    <option value="PhD">PhD / Researcher</option>
                   </select>
                 </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Class / Year</label>
-                    <input 
-                      type="text" 
-                      value={classLevel}
-                      onChange={e => setClassLevel(e.target.value)}
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
-                      placeholder="e.g. 2nd Year"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 ml-1">Division / Section</label>
-                    <input 
-                      type="text" 
-                      value={division}
-                      onChange={e => setDivision(e.target.value)}
-                      className="w-full px-5 py-4 rounded-2xl bg-gray-50 border border-transparent focus:bg-white focus:border-indigo-100 focus:ring-4 focus:ring-indigo-500/10 outline-none text-sm font-medium transition-all"
-                      placeholder="e.g. A-1"
-                    />
-                  </div>
-                </div>
-              </>
+              </div>
             )}
           </div>
 
           <button 
             type="submit"
-            className="w-full bg-indigo-600 text-white py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-xl shadow-indigo-100 hover:bg-indigo-700 hover:scale-[1.02] transition-all active:scale-[0.98]"
+            className="w-full bg-slate-900 text-white py-3.5 rounded-lg font-semibold text-sm hover:bg-slate-800 transition-all active:scale-[0.98] mt-4 shadow-sm"
           >
-            {isLogin ? 'Sign In' : 'Join Kivia'}
+            {isLogin ? 'Sign In' : 'Create Account'}
           </button>
         </form>
 
-        <div className="mt-10 text-center">
+        <div className="mt-8">
           <button 
             onClick={() => setIsLogin(!isLogin)}
-            className="text-sm text-gray-400 hover:text-indigo-600 font-bold transition-colors"
+            className="text-[10px] text-slate-400 hover:text-slate-900 font-semibold uppercase tracking-widest transition-colors"
           >
-            {isLogin ? "New here? Create an account" : "Already a member? Sign in"}
+            {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
         </div>
       </div>

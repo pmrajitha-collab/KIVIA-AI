@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { SmartNote } from '../types';
 import Logo from './Logo';
 
@@ -10,6 +9,8 @@ interface NotebookViewProps {
 
 const NotebookView: React.FC<NotebookViewProps> = ({ notes, onBack }) => {
   const [filter, setFilter] = useState('');
+  const [showScrollTop, setShowScrollTop] = useState(false);
+  const scrollRef = useRef<HTMLDivElement>(null);
 
   const filteredNotes = notes.filter(n => 
     n.title.toLowerCase().includes(filter.toLowerCase()) || 
@@ -17,83 +18,86 @@ const NotebookView: React.FC<NotebookViewProps> = ({ notes, onBack }) => {
     n.tags.some(t => t.toLowerCase().includes(filter.toLowerCase()))
   );
 
+  const handleScroll = () => {
+    if (scrollRef.current) {
+      setShowScrollTop(scrollRef.current.scrollTop > 300);
+    }
+  };
+
+  const scrollToTop = () => {
+    scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
-    <div className="h-full flex flex-col bg-gray-50/20">
-      <div className="p-8 border-b border-gray-100 bg-white/50 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-6 z-10">
-        <div className="flex items-center gap-4">
-          <button onClick={onBack} className="p-3 bg-white hover:bg-gray-100 rounded-2xl shadow-sm border border-gray-100 transition-all text-gray-400 hover:text-indigo-600">
+    <div className="h-full flex flex-col bg-slate-50/10 relative">
+      <div className="p-6 md:p-8 border-b border-slate-200 bg-white/80 backdrop-blur-md flex flex-col md:flex-row md:items-center justify-between gap-4 z-10">
+        <div className="flex items-center gap-3">
+          <button onClick={onBack} className="p-2.5 bg-white hover:bg-slate-50 rounded-xl border border-slate-200 transition-all text-slate-400 hover:text-slate-900 shadow-sm">
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" /></svg>
           </button>
           <div>
-            <div className="flex items-center gap-2 mb-1">
-              <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-              <span className="text-[10px] font-black text-green-600 uppercase tracking-widest">Knowledge Base</span>
-            </div>
-            <h2 className="text-3xl font-black text-gray-900 tracking-tight">Smart Notebook</h2>
-            <p className="text-sm text-gray-500 font-medium mt-1">SARA's synthesis of group discussions and resources.</p>
+            <h2 className="text-xl font-bold text-slate-900 tracking-tight leading-tight">Notebook</h2>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Knowledge Base</p>
           </div>
         </div>
-        <div className="flex items-center gap-4">
-          <div className="relative">
-            <svg className="w-4 h-4 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-            <input 
-              type="text" 
-              placeholder="Filter topics..." 
-              value={filter}
-              onChange={(e) => setFilter(e.target.value)}
-              className="bg-white border border-transparent rounded-[1.25rem] pl-11 pr-5 py-3 text-sm w-full md:w-72 shadow-xl shadow-gray-100 focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-100 outline-none transition-all font-medium"
-            />
-          </div>
-          <Logo className="hidden md:block w-10 h-10 opacity-60" />
+        <div className="relative w-full md:w-72">
+          <svg className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          <input 
+            type="text" 
+            placeholder="Search notes..." 
+            value={filter}
+            onChange={(e) => setFilter(e.target.value)}
+            className="w-full bg-white border border-slate-200 rounded-lg pl-10 pr-4 py-2.5 text-sm focus:bg-white focus:border-slate-400 outline-none transition-all font-medium shadow-sm"
+          />
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-8">
+      <div 
+        ref={scrollRef} 
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto px-4 md:px-8 py-8 scroll-smooth no-scrollbar"
+      >
         {filteredNotes.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-32 text-center bg-white/50 border-2 border-dashed border-gray-100 rounded-[3rem]">
-            <div className="w-24 h-24 bg-white rounded-3xl shadow-xl shadow-indigo-100 flex items-center justify-center mb-10 text-indigo-100">
-              <svg className="w-12 h-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" /></svg>
-            </div>
-            <h3 className="text-2xl font-black text-gray-900 tracking-tight">Empty Notebook</h3>
-            <p className="text-gray-500 max-w-sm mt-3 font-medium mx-auto">Click the SARA button and ask her to "Create Notes" to populate your group's brain.</p>
+          <div className="flex flex-col items-center justify-center py-24 text-center bg-white border border-dashed border-slate-300 rounded-2xl">
+            <Logo className="w-10 h-10 mb-4 opacity-10 text-slate-900" />
+            <h3 className="text-base font-bold text-slate-400 tracking-tight uppercase">Notebook Empty</h3>
+            <p className="text-xs text-slate-300 mt-2 font-medium max-w-xs mx-auto italic">Your notes will appear here.</p>
           </div>
         ) : (
-          <div className="columns-1 md:columns-2 lg:columns-3 gap-8 space-y-8 animate-in fade-in slide-in-from-bottom-6 duration-700">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-20">
             {filteredNotes.map(note => (
-              <div key={note.id} className="break-inside-avoid p-8 bg-white border border-gray-100 rounded-[2.5rem] shadow-sm hover:shadow-2xl hover:-translate-y-2 transition-all group relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-[#F9FBEC] rounded-full -mr-20 -mt-20 opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
-                
-                <div className="relative">
-                  <div className="flex items-center justify-between mb-6">
-                    <span className="text-[9px] font-black text-indigo-600 bg-indigo-50 px-3.5 py-1.5 rounded-full uppercase tracking-[0.15em]">
-                      {note.source.type}
+              <div key={note.id} className="p-6 bg-white border border-slate-200 rounded-2xl shadow-sm hover:shadow-md hover:border-slate-300 transition-all flex flex-col group">
+                <div className="flex items-center justify-between mb-4">
+                  <span className="text-[8px] font-bold text-slate-900 bg-slate-100 border border-slate-200 px-2.5 py-1 rounded-lg uppercase tracking-widest">
+                    {note.source.type}
+                  </span>
+                  <span className="text-[8px] font-bold text-slate-400 uppercase">{new Date(note.createdAt).toLocaleDateString()}</span>
+                </div>
+                <h3 className="text-base font-bold text-slate-900 mb-3 group-hover:text-slate-900 transition-colors leading-snug tracking-tight">{note.title}</h3>
+                <div className="text-xs text-slate-600 leading-relaxed font-medium line-clamp-5 mb-6 flex-1">
+                  {note.content}
+                </div>
+                <div className="flex flex-wrap gap-1.5 mt-auto border-t border-slate-50 pt-4">
+                  {note.tags.map(tag => (
+                    <span key={tag} className="text-[8px] font-bold text-slate-400 border border-slate-100 bg-slate-50 px-2 py-1 rounded-md uppercase tracking-widest">
+                      #{tag}
                     </span>
-                    <Logo className="w-5 h-5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                  </div>
-                  <h3 className="text-xl font-black text-gray-900 mb-4 group-hover:text-indigo-600 transition-colors leading-tight tracking-tight">{note.title}</h3>
-                  <div className="text-sm text-gray-600 leading-relaxed font-medium line-clamp-6">
-                    {note.content}
-                  </div>
-                  <div className="flex flex-wrap gap-2 mt-8">
-                    {note.tags.map(tag => (
-                      <span key={tag} className="text-[10px] font-bold text-gray-400 border border-gray-100 px-3 py-1.5 rounded-xl hover:bg-gray-50 transition-colors">
-                        #{tag.toUpperCase()}
-                      </span>
-                    ))}
-                  </div>
-                  <div className="mt-8 pt-6 border-t border-gray-50 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.15em] text-gray-400">
-                    <div className="flex items-center gap-2 truncate pr-4">
-                      <div className="w-1.5 h-1.5 bg-indigo-400 rounded-full"></div>
-                      {note.source.title}
-                    </div>
-                    <span className="whitespace-nowrap bg-gray-50 px-2 py-1 rounded-lg">{new Date(note.createdAt).toLocaleDateString()}</span>
-                  </div>
+                  ))}
                 </div>
               </div>
             ))}
           </div>
         )}
       </div>
+
+      {showScrollTop && (
+        <button 
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 p-3 bg-slate-900 text-white rounded-xl shadow-lg hover:bg-slate-800 transition-all z-50"
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 10l7-7 7 7M12 3v18" /></svg>
+        </button>
+      )}
     </div>
   );
 };

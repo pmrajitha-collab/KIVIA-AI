@@ -1,19 +1,24 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+export const getAI = () => {
+  const apiKey = process.env.GEMINI_API_KEY || process.env.API_KEY;
+  if (!apiKey) {
+    throw new Error("GEMINI_API_KEY is missing. Please set it in your environment variables (e.g., in Vercel dashboard).");
+  }
+  return new GoogleGenAI({ apiKey });
+};
+
 // Service for interacting with SARA (Study Assistant for Real-time Analysis)
 export const getSaraResponse = async (prompt: string, context: string) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Context (Discussion & Notes): ${context}\n\nUser Question: ${prompt}`,
       config: {
         systemInstruction: "You are SARA (Study Assistant for Real-time Analysis), KIVIA's expert academic AI. You help peer study groups by synthesizing their discussions, explaining concepts from shared materials, and providing encouragement. Keep answers concise, helpful, and academically rigorous but accessible. Always refer to the group's specific context when available.",
         temperature: 1.0,
-        // Pro models require a non-zero thinking budget when using the thinking feature
-        thinkingConfig: { thinkingBudget: 16384 }
       },
     });
 
@@ -24,14 +29,40 @@ export const getSaraResponse = async (prompt: string, context: string) => {
   }
 };
 
+export const getSaraResponseStream = async (prompt: string, context: string, onChunk: (text: string) => void) => {
+  try {
+    const ai = getAI();
+    const response = await ai.models.generateContentStream({
+      model: 'gemini-3-flash-preview',
+      contents: `Context (Discussion & Notes): ${context}\n\nUser Question: ${prompt}`,
+      config: {
+        systemInstruction: "You are SARA (Study Assistant for Real-time Analysis), KIVIA's expert academic AI. You help peer study groups by synthesizing their discussions, explaining concepts from shared materials, and providing encouragement. Keep answers concise, helpful, and academically rigorous but accessible. Always refer to the group's specific context when available.",
+        temperature: 1.0,
+      },
+    });
+
+    let fullText = "";
+    for await (const chunk of response) {
+      const text = chunk.text;
+      if (text) {
+        fullText += text;
+        onChunk(fullText);
+      }
+    }
+    return fullText;
+  } catch (error) {
+    console.error("Gemini Stream Error:", error);
+    throw error;
+  }
+};
+
 export const generateSmartNotes = async (conversation: string) => {
   if (!conversation.trim()) return [];
   
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Study Group Discussion Transcript:\n${conversation}`,
       config: {
         systemInstruction: "Extract meaningful study notes from this transcript. Focus on definitions, formulas, theories, and key dates. Ignore small talk.",
@@ -49,7 +80,6 @@ export const generateSmartNotes = async (conversation: string) => {
             propertyOrdering: ["title", "content", "tags"],
           }
         },
-        thinkingConfig: { thinkingBudget: 8192 }
       }
     });
 
@@ -64,11 +94,10 @@ export const generateSmartNotes = async (conversation: string) => {
 export const generateFlashcards = async (notebookContent: string) => {
   if (!notebookContent.trim()) return [];
   
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Existing Notebook Concepts:\n${notebookContent}`,
       config: {
         systemInstruction: "Convert these notebook entries into a series of active-recall flashcards. Each card should have a 'term' (the concept/question) and a 'definition' (the answer/explanation). Ensure they are concise and perfect for quick study sessions.",
@@ -86,7 +115,6 @@ export const generateFlashcards = async (notebookContent: string) => {
             propertyOrdering: ["term", "definition", "tags"],
           }
         },
-        thinkingConfig: { thinkingBudget: 8192 }
       }
     });
 
@@ -99,11 +127,10 @@ export const generateFlashcards = async (notebookContent: string) => {
 };
 
 export const optimizePlanner = async (currentTasks: any[], currentAlarms: any[]) => {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
   try {
+    const ai = getAI();
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: `Current Weekly Tasks: ${JSON.stringify(currentTasks)}\nCurrent Alarms: ${JSON.stringify(currentAlarms)}`,
       config: {
         systemInstruction: "You are a world-class academic performance coach. Analyze the user's weekly schedule and provide an optimized plan. Focus on: 1. Deep work blocks (90-120 mins). 2. Regular breaks (Pomodoro style). 3. Spaced repetition review sessions. 4. Strategic time for difficult subjects. Return a full set of tasks for the week that replaces the old one. Keep titles motivating and clear.",
@@ -121,7 +148,6 @@ export const optimizePlanner = async (currentTasks: any[], currentAlarms: any[])
             required: ["title", "day", "time", "category"]
           }
         },
-        thinkingConfig: { thinkingBudget: 16384 }
       }
     });
 
